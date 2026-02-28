@@ -1,0 +1,1628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stratum — Deep Data Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #05080f;
+    --surface: #0c1120;
+    --surface2: #111827;
+    --accent: #00e5a0;
+    --accent2: #7b6ff0;
+    --accent3: #f0a040;
+    --text: #e8eaf0;
+    --muted: #90e8b0;
+    --border: rgba(255,255,255,0.07);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Calibri', 'Gill Sans', sans-serif;
+    font-weight: 400;
+    overflow-x: hidden;
+    line-height: 1.6;
+  }
+
+  /* ── ANIMATED BACKGROUND ── */
+  .bg-canvas {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    overflow: hidden;
+  }
+  .bg-canvas svg {
+    width: 100%; height: 100%; opacity: 0.18;
+  }
+  .node-circle { fill: var(--accent); animation: pulse 4s ease-in-out infinite; }
+  .node-circle:nth-child(odd) { animation-delay: -2s; fill: var(--accent2); }
+  @keyframes pulse {
+    0%,100% { opacity: 0.3; r: 3; }
+    50% { opacity: 1; r: 5; }
+  }
+  .edge-line {
+    stroke: var(--accent);
+    stroke-width: 0.5;
+    stroke-dasharray: 200;
+    stroke-dashoffset: 200;
+    animation: drawEdge 6s linear infinite;
+    opacity: 0.3;
+  }
+  .edge-line:nth-child(3n) { stroke: var(--accent2); animation-delay: -2s; }
+  .edge-line:nth-child(5n) { stroke: var(--accent3); animation-delay: -4s; }
+  @keyframes drawEdge {
+    0% { stroke-dashoffset: 200; opacity: 0; }
+    20% { opacity: 0.4; }
+    80% { opacity: 0.4; }
+    100% { stroke-dashoffset: -200; opacity: 0; }
+  }
+
+  /* ── LAYOUT ── */
+  .container { max-width: 1100px; margin: 0 auto; padding: 0 2rem; position: relative; z-index: 1; }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    padding: 1.4rem 2rem;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    background: rgba(5,8,15,0.85);
+    backdrop-filter: blur(12px);
+  }
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 1.3rem;
+    letter-spacing: -0.02em;
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .logo span { color: var(--text); }
+  nav ul { list-style: none; display: flex; gap: 2.5rem; }
+  nav ul a {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    transition: color 0.2s;
+  }
+  nav ul a:hover { color: var(--accent); }
+  .nav-cta {
+    background: var(--accent);
+    color: var(--bg) !important;
+    padding: 0.5rem 1.2rem;
+    border-radius: 2px;
+    font-weight: 400;
+    transition: opacity 0.2s !important;
+  }
+  .nav-cta:hover { opacity: 0.85; color: var(--bg) !important; }
+
+  /* ── HERO ── */
+  .hero {
+    min-height: 100vh;
+    display: flex; align-items: center;
+    padding: 8rem 0 4rem;
+    position: relative;
+  }
+  .hero-inner {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6rem;
+    align-items: center;
+    width: 100%;
+  }
+  .hero-tag {
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 1.5rem;
+    display: flex; align-items: center; gap: 0.75rem;
+  }
+  .hero-tag::before {
+    content: '';
+    display: inline-block;
+    width: 2rem; height: 1px;
+    background: var(--accent);
+  }
+  .hero h1 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: clamp(2.8rem, 5vw, 4.2rem);
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    margin-bottom: 1.5rem;
+  }
+  .hero h1 em {
+    font-family: 'Instrument Serif', serif;
+    font-style: italic;
+    color: var(--accent);
+    font-weight: 400;
+  }
+  .hero-sub {
+    font-size: 0.95rem;
+    color: var(--muted);
+    max-width: 42ch;
+    margin-bottom: 2.5rem;
+    line-height: 1.8;
+  }
+  .hero-actions { display: flex; gap: 1rem; align-items: center; }
+  .btn-primary {
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    padding: 0.85rem 2rem;
+    font-family: 'Calibri', 'Gill Sans', sans-serif;
+    font-size: 0.82rem;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: opacity 0.2s, transform 0.15s;
+    text-decoration: none;
+    display: inline-block;
+  }
+  .btn-primary:hover { opacity: 0.88; transform: translateY(-1px); }
+  .btn-ghost {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 0.85rem 2rem;
+    font-family: 'Calibri', 'Gill Sans', sans-serif;
+    font-size: 0.82rem;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: border-color 0.2s, color 0.2s;
+    text-decoration: none;
+    display: inline-block;
+  }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ── HERO VISUAL: Matrix Preview ── */
+  .matrix-preview {
+    position: relative;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    border-radius: 6px;
+    overflow: hidden;
+    animation: fadeInRight 1s ease forwards;
+    opacity: 0;
+  }
+  @keyframes fadeInRight {
+    from { opacity: 0; transform: translateX(30px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes fadeInLeft {
+    from { opacity: 0; transform: translateX(-30px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  .matrix-preview .bar {
+    display: flex; align-items: center; gap: 0.5rem;
+    padding: 0.7rem 1rem;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    font-size: 0.68rem;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .dot.r { background: #ff5f57; }
+  .dot.y { background: #febc2e; }
+  .dot.g { background: var(--accent); }
+  .matrix-table {
+    overflow: auto;
+    padding: 0.5rem;
+  }
+  table { border-collapse: collapse; width: 100%; font-size: 0.62rem; }
+  th {
+    padding: 0.4rem 0.6rem;
+    text-align: center;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+    font-weight: 400;
+    letter-spacing: 0.04em;
+  }
+  th.rowh { text-align: left; color: var(--muted); min-width: 80px; }
+  td {
+    padding: 0.3rem 0.5rem;
+    text-align: center;
+    border: 1px solid rgba(255,255,255,0.03);
+    position: relative;
+    transition: background 0.2s;
+  }
+  td:hover { background: rgba(0,229,160,0.08); cursor: default; }
+  td.row-label {
+    text-align: left;
+    color: var(--muted);
+    font-size: 0.6rem;
+    white-space: nowrap;
+    padding-right: 1rem;
+  }
+  .cell-high { background: rgba(0,229,160,0.25); color: var(--accent); }
+  .cell-mid { background: rgba(123,111,240,0.2); color: #a99ef5; }
+  .cell-low { background: rgba(255,255,255,0.03); color: var(--muted); }
+  .module-badge {
+    position: absolute; bottom: -1px; left: 0; right: 0;
+    height: 2px;
+  }
+  .mod-a { background: var(--accent); }
+  .mod-b { background: var(--accent2); }
+  .mod-c { background: var(--accent3); }
+
+  /* ── STATS ── */
+  .stats-bar {
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: 2rem 0;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+    position: relative; z-index: 1;
+    margin: 0;
+  }
+  .stat {
+    padding: 0 2rem;
+    border-right: 1px solid var(--border);
+    animation: fadeInLeft 0.8s ease forwards;
+    opacity: 0;
+  }
+  .stat:first-child { padding-left: 0; }
+  .stat:last-child { border-right: none; }
+  .stat-num {
+    font-family: 'Syne', sans-serif;
+    font-size: 2.4rem;
+    font-weight: 800;
+    color: var(--accent);
+    letter-spacing: -0.04em;
+    line-height: 1;
+    margin-bottom: 0.4rem;
+  }
+  .stat-num.v2 { color: var(--accent2); }
+  .stat-num.v3 { color: var(--accent3); }
+  .stat-label { font-size: 0.7rem; color: var(--muted); letter-spacing: 0.05em; line-height: 1.4; }
+
+  /* ── SECTION ── */
+  section { padding: 7rem 0; position: relative; z-index: 1; }
+  .section-tag {
+    font-size: 0.68rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 1rem;
+  }
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(1.8rem, 3.5vw, 2.8rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    margin-bottom: 1rem;
+    line-height: 1.1;
+  }
+  .section-title em {
+    font-family: 'Instrument Serif', serif;
+    font-style: italic;
+    color: var(--accent2);
+    font-weight: 400;
+  }
+  .section-sub {
+    color: var(--muted);
+    font-size: 0.9rem;
+    max-width: 55ch;
+    line-height: 1.9;
+    margin-bottom: 3rem;
+  }
+
+  /* ── PIPELINE ── */
+  .pipeline {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 4rem;
+  }
+  .pipe-step {
+    flex: 1;
+    padding: 2rem 1.5rem;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    position: relative;
+    transition: background 0.2s;
+  }
+  .pipe-step:last-child { border-right: none; }
+  .pipe-step:hover { background: var(--surface2); }
+  .pipe-step::after {
+    content: '→';
+    position: absolute;
+    right: -0.7rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--accent);
+    font-size: 0.9rem;
+    z-index: 2;
+  }
+  .pipe-step:last-child::after { display: none; }
+  .pipe-num {
+    font-size: 0.6rem;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+    margin-bottom: 0.75rem;
+    font-weight: 400;
+  }
+  .pipe-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    letter-spacing: -0.01em;
+  }
+  .pipe-desc {
+    font-size: 0.72rem;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+  .pipe-icon {
+    font-size: 1.6rem;
+    margin-bottom: 0.75rem;
+    display: block;
+  }
+
+  /* ── METHODS GRID ── */
+  .methods-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .method-card {
+    background: var(--surface);
+    padding: 2rem;
+    transition: background 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .method-card:hover { background: var(--surface2); }
+  .method-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px; height: 100%;
+  }
+  .method-card.na::before { background: var(--accent); }
+  .method-card.sem::before { background: var(--accent2); }
+  .method-card.ml::before { background: var(--accent3); }
+  .method-card.ts::before { background: #f06090; }
+  .method-card.dim::before { background: #40c8f0; }
+  .method-card.stat::before { background: #a0f040; }
+  .method-icon {
+    font-size: 1.8rem;
+    margin-bottom: 1rem;
+    display: block;
+  }
+  .method-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    letter-spacing: -0.01em;
+  }
+  .method-desc {
+    font-size: 0.72rem;
+    color: var(--muted);
+    line-height: 1.7;
+    margin-bottom: 1rem;
+  }
+  .method-tags {
+    display: flex; flex-wrap: wrap; gap: 0.4rem;
+  }
+  .tag {
+    font-size: 0.6rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 0.25rem 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    color: var(--muted);
+  }
+  .tag.accent { border-color: rgba(0,229,160,0.3); color: var(--accent); }
+
+  /* ── USE CASE WALKTHROUGH ── */
+  .walkthrough {
+    display: grid;
+    grid-template-columns: 1fr 1.4fr;
+    gap: 4rem;
+    align-items: start;
+  }
+  .walkthrough-steps { display: flex; flex-direction: column; gap: 0; }
+  .w-step {
+    padding: 1.5rem;
+    border-left: 2px solid var(--border);
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    border-radius: 0 4px 4px 0;
+  }
+  .w-step.active { border-color: var(--accent); background: rgba(0,229,160,0.04); }
+  .w-step-num {
+    font-size: 0.6rem;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    margin-bottom: 0.4rem;
+  }
+  .w-step.active .w-step-num { color: var(--accent); }
+  .w-step-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin-bottom: 0.3rem;
+  }
+  .w-step-body {
+    font-size: 0.72rem;
+    color: var(--muted);
+    line-height: 1.7;
+    display: none;
+  }
+  .w-step.active .w-step-body { display: block; }
+
+  .walkthrough-viz {
+    position: sticky;
+    top: 8rem;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    border-radius: 6px;
+    overflow: hidden;
+    min-height: 380px;
+  }
+  .viz-bar {
+    padding: 0.75rem 1rem;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    font-size: 0.65rem;
+    color: var(--muted);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .viz-body { padding: 1.5rem; }
+
+  /* Network Graph */
+  .network-svg { width: 100%; border-radius: 4px; }
+  .n-node { cursor: pointer; transition: r 0.3s; }
+  .n-edge { stroke-width: 1; opacity: 0.4; }
+  .n-label { font-size: 8px; fill: #aaa; font-family: 'Calibri', 'Gill Sans', sans-serif; }
+
+  /* ── INTEGRATIONS ── */
+  .integrations-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .integration-card {
+    background: var(--surface);
+    padding: 1.5rem;
+    display: flex; flex-direction: column;
+    align-items: flex-start;
+    gap: 0.6rem;
+    transition: background 0.2s;
+  }
+  .integration-card:hover { background: var(--surface2); }
+  .i-icon { font-size: 1.5rem; }
+  .i-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+  }
+  .i-desc { font-size: 0.68rem; color: var(--muted); line-height: 1.6; }
+  .i-badge {
+    font-size: 0.58rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 0.2rem 0.5rem;
+    background: rgba(0,229,160,0.1);
+    color: var(--accent);
+    border-radius: 2px;
+    margin-top: auto;
+  }
+  .i-badge.v2 { background: rgba(123,111,240,0.1); color: var(--accent2); }
+  .i-badge.v3 { background: rgba(240,160,64,0.1); color: var(--accent3); }
+
+  /* ── CTA ── */
+  .cta-section {
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+    padding: 6rem 0;
+    text-align: center;
+    position: relative; z-index: 1;
+    overflow: hidden;
+  }
+  .cta-section::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(0,229,160,0.07) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .cta-section h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(2rem, 4vw, 3.5rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    margin-bottom: 1rem;
+  }
+  .cta-section p {
+    color: var(--muted);
+    font-size: 0.9rem;
+    max-width: 50ch;
+    margin: 0 auto 2.5rem;
+    line-height: 1.8;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    padding: 3rem 0;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative; z-index: 1;
+    font-size: 0.7rem;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+
+  /* Scroll animations */
+  .reveal {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* ── CROSS-MODAL FUSION ── */
+  .fusion-intro {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+    align-items: start;
+    margin-bottom: 5rem;
+  }
+  .fusion-concept {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .fusion-concept-bar {
+    padding: 0.75rem 1rem;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    font-size: 0.65rem;
+    color: var(--muted);
+    display: flex; justify-content: space-between;
+  }
+  .fusion-concept-body { padding: 1.5rem; }
+
+  /* Timeline chart */
+  .timeline-wrap { position: relative; }
+  .tl-axis {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.58rem;
+    color: var(--muted);
+    margin-bottom: 0.5rem;
+    letter-spacing: 0.04em;
+  }
+  .tl-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.6rem;
+  }
+  .tl-label {
+    font-size: 0.62rem;
+    color: var(--muted);
+    width: 80px;
+    flex-shrink: 0;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .tl-bar-track {
+    flex: 1;
+    height: 18px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 2px;
+    position: relative;
+    overflow: visible;
+  }
+  .tl-spike {
+    position: absolute;
+    top: 0; bottom: 0;
+    border-radius: 2px;
+    opacity: 0.85;
+  }
+  .tl-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 0.8rem 0;
+    margin-left: 88px;
+  }
+  .tl-window {
+    position: absolute;
+    top: -3px; bottom: -3px;
+    background: rgba(255,255,255,0.06);
+    border: 1px dashed rgba(255,255,255,0.2);
+    border-radius: 2px;
+    pointer-events: none;
+  }
+  .tl-match-dot {
+    position: absolute;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  /* Fusion modes grid */
+  .fusion-modes {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 4rem;
+  }
+  .fusion-mode-card {
+    background: var(--surface);
+    padding: 1.75rem;
+    transition: background 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .fusion-mode-card:hover { background: var(--surface2); }
+  .fusion-mode-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 2px;
+  }
+  .fm-overlay::before { background: linear-gradient(90deg, var(--accent), transparent); }
+  .fm-xcorr::before { background: linear-gradient(90deg, var(--accent2), transparent); }
+  .fm-window::before { background: linear-gradient(90deg, var(--accent3), transparent); }
+  .fm-entity::before { background: linear-gradient(90deg, #f06090, transparent); }
+  .fm-sem::before { background: linear-gradient(90deg, #40c8f0, transparent); }
+  .fm-alert::before { background: linear-gradient(90deg, #a0f040, transparent); }
+  .fm-icon { font-size: 1.6rem; margin-bottom: 0.85rem; display: block; }
+  .fm-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    letter-spacing: -0.01em;
+  }
+  .fm-desc {
+    font-size: 0.72rem;
+    color: var(--muted);
+    line-height: 1.75;
+    margin-bottom: 1rem;
+  }
+  .fm-example {
+    font-size: 0.65rem;
+    color: var(--accent);
+    border-left: 2px solid rgba(0,229,160,0.3);
+    padding-left: 0.6rem;
+    line-height: 1.6;
+    font-style: italic;
+  }
+  .fm-example.v2 { color: var(--accent2); border-color: rgba(123,111,240,0.3); }
+  .fm-example.v3 { color: var(--accent3); border-color: rgba(240,160,64,0.3); }
+  .fm-example.v4 { color: #f06090; border-color: rgba(240,96,144,0.3); }
+  .fm-example.v5 { color: #40c8f0; border-color: rgba(64,200,240,0.3); }
+  .fm-example.v6 { color: #a0f040; border-color: rgba(160,240,64,0.3); }
+
+  /* Join key diagram */
+  .join-diagram {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 1.5rem;
+    align-items: center;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    border-radius: 6px;
+    padding: 2rem;
+  }
+  .join-side {
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .join-side-header {
+    padding: 0.6rem 0.85rem;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    font-size: 0.65rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .join-side-header.left { color: var(--accent); }
+  .join-side-header.right { color: var(--accent2); }
+  .join-rows { padding: 0.5rem; }
+  .join-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.3rem 0.35rem;
+    border-radius: 2px;
+    font-size: 0.62rem;
+    transition: background 0.15s;
+  }
+  .join-row:hover { background: rgba(255,255,255,0.04); }
+  .join-ts {
+    color: var(--muted);
+    font-size: 0.58rem;
+    white-space: nowrap;
+  }
+  .join-val {
+    color: var(--text);
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .join-mod {
+    font-size: 0.56rem;
+    padding: 0.15rem 0.35rem;
+    border-radius: 2px;
+    white-space: nowrap;
+  }
+  .mod-a-tag { background: rgba(0,229,160,0.15); color: var(--accent); }
+  .mod-b-tag { background: rgba(123,111,240,0.15); color: var(--accent2); }
+  .mod-c-tag { background: rgba(240,160,64,0.15); color: var(--accent3); }
+  .join-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .join-key-badge {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.75rem 1rem;
+    text-align: center;
+    font-size: 0.65rem;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+  }
+  .join-key-badge strong {
+    display: block;
+    font-family: 'Syne', sans-serif;
+    font-size: 1rem;
+    color: var(--text);
+    font-weight: 700;
+    margin-top: 0.25rem;
+    letter-spacing: -0.01em;
+  }
+  .join-arrow { color: var(--muted); font-size: 1.2rem; }
+
+  @media (max-width: 768px) {
+    .hero-inner { grid-template-columns: 1fr; gap: 3rem; }
+    .stats-bar { grid-template-columns: repeat(2,1fr); }
+    .methods-grid { grid-template-columns: 1fr; }
+    .walkthrough { grid-template-columns: 1fr; }
+    .integrations-grid { grid-template-columns: repeat(2,1fr); }
+    .pipeline { flex-direction: column; }
+    .pipe-step::after { display: none; }
+    .fusion-intro { grid-template-columns: 1fr; }
+    .fusion-modes { grid-template-columns: 1fr; }
+    .join-diagram { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── ANIMATED BG ── -->
+<div class="bg-canvas">
+  <svg viewBox="0 0 1400 800" preserveAspectRatio="xMidYMid slice">
+    <!-- Edges -->
+    <line class="edge-line" x1="200" y1="150" x2="450" y2="300"/>
+    <line class="edge-line" x1="450" y1="300" x2="700" y2="200"/>
+    <line class="edge-line" x1="700" y1="200" x2="950" y2="350"/>
+    <line class="edge-line" x1="950" y1="350" x2="1200" y2="250"/>
+    <line class="edge-line" x1="200" y1="150" x2="350" y2="500"/>
+    <line class="edge-line" x1="350" y1="500" x2="600" y2="600"/>
+    <line class="edge-line" x1="600" y1="600" x2="850" y2="550"/>
+    <line class="edge-line" x1="850" y1="550" x2="1100" y2="650"/>
+    <line class="edge-line" x1="450" y1="300" x2="600" y2="600"/>
+    <line class="edge-line" x1="700" y1="200" x2="850" y2="550"/>
+    <line class="edge-line" x1="950" y1="350" x2="850" y2="550"/>
+    <line class="edge-line" x1="1200" y1="250" x2="1100" y2="650"/>
+    <line class="edge-line" x1="100" y1="600" x2="350" y2="500"/>
+    <line class="edge-line" x1="1300" y1="500" x2="1100" y2="650"/>
+    <!-- Nodes -->
+    <circle class="node-circle" cx="200" cy="150" r="4"/>
+    <circle class="node-circle" cx="450" cy="300" r="5"/>
+    <circle class="node-circle" cx="700" cy="200" r="4"/>
+    <circle class="node-circle" cx="950" cy="350" r="6"/>
+    <circle class="node-circle" cx="1200" cy="250" r="4"/>
+    <circle class="node-circle" cx="350" cy="500" r="5"/>
+    <circle class="node-circle" cx="600" cy="600" r="4"/>
+    <circle class="node-circle" cx="850" cy="550" r="5"/>
+    <circle class="node-circle" cx="1100" cy="650" r="4"/>
+    <circle class="node-circle" cx="100" cy="600" r="3"/>
+    <circle class="node-circle" cx="1300" cy="500" r="4"/>
+  </svg>
+</div>
+
+<!-- ── NAV ── -->
+<nav>
+  <a href="#" class="logo">Strat<span>um</span></a>
+  <ul>
+    <li><a href="#methods">Methods</a></li>
+    <li><a href="#pipeline">Pipeline</a></li>
+    <li><a href="#fusion">Fusion</a></li>
+    <li><a href="#integrations">Integrations</a></li>
+    <li><a href="#" class="nav-cta">Request Access</a></li>
+  </ul>
+</nav>
+
+<!-- ── HERO ── -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-inner">
+      <div style="animation: fadeInLeft 1s ease forwards; opacity: 0;">
+        <div class="hero-tag">Cross-Modal Data Intelligence Platform</div>
+        <h1>From text patterns<br>to <em>real-world events</em></h1>
+        <p class="hero-sub">
+          Stratum extracts keyword modules from your text corpus, anchors them in time, then fuses them with any timestamped structured dataset — flight logs, bank transfers, purchases, access records — to surface co-occurrences that neither dataset could reveal alone.
+        </p>
+        <div class="hero-actions">
+          <a href="#fusion" class="btn-primary">See Cross-Modal Fusion</a>
+          <a href="#pipeline" class="btn-ghost">How It Works</a>
+        </div>
+      </div>
+      <!-- Matrix Preview -->
+      <div class="matrix-preview">
+        <div class="bar">
+          <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+          <span style="margin-left:0.5rem">stratum — email_corpus_jmail.world · 4,821 docs × 18,340 terms</span>
+        </div>
+        <div class="matrix-table">
+          <table>
+            <thead>
+              <tr>
+                <th class="rowh">Email ID</th>
+                <th title="TF-IDF score">"budget"</th>
+                <th title="TF-IDF score">"liability"</th>
+                <th title="TF-IDF score">"milestone"</th>
+                <th title="TF-IDF score">"overdue"</th>
+                <th title="TF-IDF score">"exposure"</th>
+                <th title="TF-IDF score">"deliverable"</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="row-label">msg_001923</td>
+                <td class="cell-high">0.81<div class="module-badge mod-a"></div></td>
+                <td class="cell-high">0.74<div class="module-badge mod-a"></div></td>
+                <td class="cell-low">0.04</td>
+                <td class="cell-low">0.02</td>
+                <td class="cell-high">0.69<div class="module-badge mod-a"></div></td>
+                <td class="cell-low">0.11</td>
+              </tr>
+              <tr>
+                <td class="row-label">msg_001924</td>
+                <td class="cell-low">0.06</td>
+                <td class="cell-low">0.03</td>
+                <td class="cell-high">0.88<div class="module-badge mod-b"></div></td>
+                <td class="cell-high">0.77<div class="module-badge mod-b"></div></td>
+                <td class="cell-low">0.09</td>
+                <td class="cell-high">0.82<div class="module-badge mod-b"></div></td>
+              </tr>
+              <tr>
+                <td class="row-label">msg_001925</td>
+                <td class="cell-mid">0.43</td>
+                <td class="cell-high">0.66<div class="module-badge mod-a"></div></td>
+                <td class="cell-low">0.08</td>
+                <td class="cell-high">0.71<div class="module-badge mod-c"></div></td>
+                <td class="cell-mid">0.38</td>
+                <td class="cell-low">0.05</td>
+              </tr>
+              <tr>
+                <td class="row-label">msg_001926</td>
+                <td class="cell-high">0.79<div class="module-badge mod-a"></div></td>
+                <td class="cell-low">0.12</td>
+                <td class="cell-low">0.07</td>
+                <td class="cell-low">0.03</td>
+                <td class="cell-high">0.84<div class="module-badge mod-a"></div></td>
+                <td class="cell-low">0.09</td>
+              </tr>
+              <tr>
+                <td class="row-label">msg_001927</td>
+                <td class="cell-low">0.04</td>
+                <td class="cell-low">0.07</td>
+                <td class="cell-high">0.91<div class="module-badge mod-b"></div></td>
+                <td class="cell-high">0.80<div class="module-badge mod-b"></div></td>
+                <td class="cell-low">0.05</td>
+                <td class="cell-high">0.76<div class="module-badge mod-b"></div></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="padding: 0.75rem 1rem; border-top: 1px solid var(--border); font-size: 0.62rem; color: var(--muted); display: flex; gap: 1.5rem; flex-wrap: wrap;">
+          <span style="color:var(--muted);margin-right:0.5rem">cells = TF-IDF weight ·</span>
+          <span style="display:flex;align-items:center;gap:0.4rem"><span style="display:inline-block;width:8px;height:8px;background:var(--accent);border-radius:1px"></span>Module A — Financial/Legal terms</span>
+          <span style="display:flex;align-items:center;gap:0.4rem"><span style="display:inline-block;width:8px;height:8px;background:var(--accent2);border-radius:1px"></span>Module B — Project/Ops terms</span>
+          <span style="display:flex;align-items:center;gap:0.4rem"><span style="display:inline-block;width:8px;height:8px;background:var(--accent3);border-radius:1px"></span>Module C — Urgency terms</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── STATS ── -->
+<div class="container">
+  <div class="stats-bar">
+    <div class="stat"><div class="stat-num">10M+</div><div class="stat-label">Documents &amp; records<br>fused in single analyses</div></div>
+    <div class="stat"><div class="stat-num v2">100K+</div><div class="stat-label">Vocabulary terms<br>per text corpus</div></div>
+    <div class="stat"><div class="stat-num v3">5</div><div class="stat-label">Cross-modal<br>fusion modes</div></div>
+    <div class="stat"><div class="stat-num">&#60;2s</div><div class="stat-label">Keyword module<br>detection latency</div></div>
+  </div>
+</div>
+
+<!-- ── PIPELINE ── -->
+<section id="pipeline">
+  <div class="container">
+    <div class="section-tag">The Workflow</div>
+    <div class="section-title reveal">Two phases.<br><em>One unified pipeline.</em></div>
+    <div class="section-sub reveal">Phase one: extract every keyword from your text corpus, build the document-term matrix, and discover co-occurrence modules. Phase two: anchor those modules in time and fuse them with any structured dataset that shares a timestamp — revealing what the text was predicting all along.</div>
+
+    <div class="pipeline reveal">
+      <div class="pipe-step">
+        <span class="pipe-icon">🔌</span>
+        <div class="pipe-num">01 — INGEST</div>
+        <div class="pipe-title">Connect Corpus</div>
+        <div class="pipe-desc">Import from email systems, databases, APIs, or flat files. For emails, the full body text — not just subjects — is pulled for every message along with sender, timestamp, and thread metadata.</div>
+      </div>
+      <div class="pipe-step">
+        <span class="pipe-icon">✂️</span>
+        <div class="pipe-num">02 — EXTRACT</div>
+        <div class="pipe-title">Keyword Extraction</div>
+        <div class="pipe-desc">NLP preprocessing: tokenization, stopword removal, lemmatization, and optional n-gram generation. Vocabulary is filtered by document frequency thresholds to control matrix size and noise.</div>
+      </div>
+      <div class="pipe-step">
+        <span class="pipe-icon">📊</span>
+        <div class="pipe-num">03 — MATRIX</div>
+        <div class="pipe-title">Document-Term Matrix</div>
+        <div class="pipe-desc">Documents as rows, extracted keywords as columns. Cell values are TF-IDF weights, raw counts, or binary presence — your choice. Stored as a sparse matrix to handle vocabularies of 100K+ terms.</div>
+      </div>
+      <div class="pipe-step">
+        <span class="pipe-icon">🕸️</span>
+        <div class="pipe-num">04 — ANALYZE</div>
+        <div class="pipe-title">Apply Methods</div>
+        <div class="pipe-desc">Compute a term co-occurrence network from column-wise correlations. Run Louvain community detection to find keyword modules — clusters of terms that appear together across the corpus.</div>
+      </div>
+      <div class="pipe-step">
+        <span class="pipe-icon">💡</span>
+        <div class="pipe-num">05 — INSIGHT</div>
+        <div class="pipe-title">Visualize & Export</div>
+        <div class="pipe-desc">Interactive keyword network graphs, heatmaps, SEM path diagrams, and UMAP projections. Export modules, loadings, and model fit statistics as reports or structured data files.</div>
+      </div>
+      <div class="pipe-step">
+        <span class="pipe-icon">🔀</span>
+        <div class="pipe-num">06 — FUSE</div>
+        <div class="pipe-title">Cross-Modal Fusion</div>
+        <div class="pipe-desc">Use keyword module timestamps as a join key into any structured dataset. Compute lagged cross-correlations, event-driven windows, and joint SEM models spanning text and numeric data simultaneously.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── METHODS ── -->
+<section id="methods" style="padding-top: 0;">
+  <div class="container">
+    <div class="section-tag">Statistical Engine</div>
+    <div class="section-title reveal">Six methods.<br><em>One unified interface.</em></div>
+    <div class="section-sub reveal">No stitching together Python notebooks, R scripts, and Gephi. Every method runs inside Stratum on the same document-term matrix — and the results feed directly into cross-modal fusion with your structured datasets.</div>
+
+    <div class="methods-grid reveal">
+      <div class="method-card na">
+        <span class="method-icon">🕸️</span>
+        <div class="method-name">Network Analysis</div>
+        <div class="method-desc">Correlate columns of your document-term matrix to build a term co-occurrence network — where nodes are keywords and edges reflect how often two terms appear together across documents. Community detection finds keyword modules: clusters of terms no one searched for together, but that clearly belong together.</div>
+        <div class="method-tags">
+          <span class="tag accent">Louvain</span>
+          <span class="tag accent">Eigenvector</span>
+          <span class="tag">WGCNA-style</span>
+          <span class="tag">Force-layout</span>
+        </div>
+      </div>
+      <div class="method-card sem">
+        <span class="method-icon">⟶</span>
+        <div class="method-name">Structural Equation Modeling</div>
+        <div class="method-desc">Treat keyword modules discovered via network analysis as indicator sets for latent variables. SEM tests whether those co-occurring terms genuinely reflect an underlying construct — a topic, theme, or organizational pattern — rather than statistical coincidence. Fit indices confirm or reject the model.</div>
+        <div class="method-tags">
+          <span class="tag">Latent vars</span>
+          <span class="tag">CFA / EFA</span>
+          <span class="tag">Path diagrams</span>
+          <span class="tag">Fit indices</span>
+        </div>
+      </div>
+      <div class="method-card ml">
+        <span class="method-icon">🌳</span>
+        <div class="method-name">Machine Learning</div>
+        <div class="method-desc">Train classifiers or regressors on the document-term matrix to predict labels or outcomes. Feature importance scores reveal which specific keywords drive predictions. Unsupervised clustering groups documents by their full keyword profiles — not by the terms you thought to search for.</div>
+        <div class="method-tags">
+          <span class="tag">Random Forest</span>
+          <span class="tag">XGBoost</span>
+          <span class="tag">k-Means</span>
+          <span class="tag">HDBSCAN</span>
+        </div>
+      </div>
+      <div class="method-card dim">
+        <span class="method-icon">📐</span>
+        <div class="method-name">Dimensionality Reduction</div>
+        <div class="method-desc">Project the high-dimensional document-term matrix into 2D or 3D space. Documents that share vocabulary cluster together visually. PCA loadings show which keywords explain the most variance; UMAP reveals non-linear structure across the corpus at a glance.</div>
+        <div class="method-tags">
+          <span class="tag">PCA</span>
+          <span class="tag">UMAP</span>
+          <span class="tag">t-SNE</span>
+          <span class="tag">Factor Analysis</span>
+        </div>
+      </div>
+      <div class="method-card ts">
+        <span class="method-icon">📈</span>
+        <div class="method-name">Time Series Analysis</div>
+        <div class="method-desc">When documents have timestamps, analyze how keyword co-occurrence patterns evolve. Detect when new term modules emerge or collapse, identify which keywords lead or lag others, and model how vocabulary shifts signal organizational or behavioral change over time.</div>
+        <div class="method-tags">
+          <span class="tag">Cross-correlation</span>
+          <span class="tag">Granger</span>
+          <span class="tag">Wavelet</span>
+          <span class="tag">Rolling windows</span>
+        </div>
+      </div>
+      <div class="method-card stat">
+        <span class="method-icon">🎲</span>
+        <div class="method-name">Classical Statistics</div>
+        <div class="method-desc">The full hypothesis-testing toolkit. Compare groups, test associations, validate model assumptions, and compute effect sizes. Every result includes p-values, confidence intervals, and power estimates.</div>
+        <div class="method-tags">
+          <span class="tag">ANOVA</span>
+          <span class="tag">Chi-square</span>
+          <span class="tag">Bayesian</span>
+          <span class="tag">Permutation</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── WALKTHROUGH ── -->
+<section>
+  <div class="container">
+    <div class="section-tag">Example Use Case</div>
+    <div class="section-title reveal">JMail.world —<br><em>every word, analyzed</em></div>
+    <div class="section-sub reveal">Instead of searching for keywords one at a time, Stratum extracts every meaningful term from 4,821 email bodies, builds a 4,821 × 18,340 document-term matrix, and discovers keyword modules — which then become the lens for probing bank transfers, flight logs, and any other timestamped structured dataset.</div>
+
+    <div class="walkthrough reveal">
+      <div class="walkthrough-steps">
+        <div class="w-step active" onclick="setStep(this, 0)">
+          <div class="w-step-num">STEP 01</div>
+          <div class="w-step-title">Ingest full email body text</div>
+          <div class="w-step-body">Stratum connects to JMail.world and pulls the complete body text of all 4,821 messages — not just subject lines or metadata. Sender, recipient, timestamp, and thread structure are retained as document-level attributes for downstream filtering and time series analysis.</div>
+        </div>
+        <div class="w-step" onclick="setStep(this, 1)">
+          <div class="w-step-num">STEP 02</div>
+          <div class="w-step-title">Extract & weight every keyword</div>
+          <div class="w-step-body">NLP preprocessing tokenizes all 4,821 email bodies, removes stopwords, and lemmatizes tokens. N-grams (e.g. "cash flow", "project deadline") are optionally added. After frequency thresholding, 18,340 terms survive. Each is weighted by TF-IDF: high for terms distinctive to specific emails, low for terms ubiquitous across the whole corpus.</div>
+        </div>
+        <div class="w-step" onclick="setStep(this, 2)">
+          <div class="w-step-num">STEP 03</div>
+          <div class="w-step-title">Build the document-term matrix</div>
+          <div class="w-step-body">A sparse 4,821 × 18,340 matrix is constructed — emails as rows, extracted keywords as columns, TF-IDF weights as cell values. Most cells are zero (most words don't appear in most emails). This sparsity is expected and handled efficiently; it's the structure that makes network analysis possible.</div>
+        </div>
+        <div class="w-step" onclick="setStep(this, 3)">
+          <div class="w-step-num">STEP 04</div>
+          <div class="w-step-title">Compute the keyword co-occurrence network</div>
+          <div class="w-step-body">Column-wise correlations across the 18,340 terms produce a term-term co-occurrence matrix. Pairs of keywords that frequently appear in the same emails get high edge weights. Louvain community detection runs on this network and identifies three stable modules: a Financial/Legal cluster, a Project/Operations cluster, and a Compliance/Urgency cluster — none of which were defined in advance.</div>
+        </div>
+        <div class="w-step" onclick="setStep(this, 4)">
+          <div class="w-step-num">STEP 05</div>
+          <div class="w-step-title">Validate modules with SEM</div>
+          <div class="w-step-body">Each keyword module becomes the indicator set for a latent variable in a Structural Equation Model. CFA tests whether the module's keywords load coherently onto a single factor — confirming the cluster reflects a real latent topic, not random co-occurrence. Model fit (CFI=0.94, RMSEA=0.048) validates the three-factor structure across the full corpus.</div>
+        </div>
+      </div>
+
+      <div class="walkthrough-viz">
+        <div class="viz-bar">
+          <span>Keyword Co-occurrence Network — top terms</span>
+          <span style="color:var(--accent)">3 modules detected</span>
+        </div>
+        <div class="viz-body">
+          <svg class="network-svg" viewBox="0 0 380 300" id="networkViz">
+            <!-- Module A edges (green) — financial/legal terms -->
+            <line class="n-edge" x1="120" y1="80" x2="80" y2="150" stroke="#00e5a0"/>
+            <line class="n-edge" x1="120" y1="80" x2="150" y2="160" stroke="#00e5a0"/>
+            <line class="n-edge" x1="80" y1="150" x2="150" y2="160" stroke="#00e5a0"/>
+            <line class="n-edge" x1="120" y1="80" x2="60" y2="100" stroke="#00e5a0" opacity="0.3"/>
+            <line class="n-edge" x1="80" y1="150" x2="50" y2="200" stroke="#00e5a0" opacity="0.3"/>
+            <!-- Module B edges (purple) — project/ops terms -->
+            <line class="n-edge" x1="250" y1="90" x2="300" y2="150" stroke="#7b6ff0"/>
+            <line class="n-edge" x1="250" y1="90" x2="230" y2="170" stroke="#7b6ff0"/>
+            <line class="n-edge" x1="300" y1="150" x2="230" y2="170" stroke="#7b6ff0"/>
+            <line class="n-edge" x1="300" y1="150" x2="330" y2="100" stroke="#7b6ff0" opacity="0.3"/>
+            <line class="n-edge" x1="230" y1="170" x2="270" y2="220" stroke="#7b6ff0" opacity="0.3"/>
+            <!-- Module C edges (orange) — compliance/urgency terms -->
+            <line class="n-edge" x1="180" y1="230" x2="140" y2="265" stroke="#f0a040"/>
+            <line class="n-edge" x1="180" y1="230" x2="220" y2="260" stroke="#f0a040"/>
+            <line class="n-edge" x1="140" y1="265" x2="220" y2="260" stroke="#f0a040" opacity="0.5"/>
+            <!-- Cross-module weak edges -->
+            <line class="n-edge" x1="150" y1="160" x2="230" y2="170" stroke="#ffffff" opacity="0.1"/>
+            <line class="n-edge" x1="150" y1="160" x2="180" y2="230" stroke="#ffffff" opacity="0.1"/>
+            <line class="n-edge" x1="270" y1="220" x2="180" y2="230" stroke="#ffffff" opacity="0.1"/>
+            <!-- Module A nodes -->
+            <circle class="n-node" cx="120" cy="80" r="12" fill="rgba(0,229,160,0.2)" stroke="#00e5a0" stroke-width="1.5"/>
+            <circle cx="120" cy="80" r="6" fill="#00e5a0"/>
+            <circle class="n-node" cx="80" cy="150" r="10" fill="rgba(0,229,160,0.15)" stroke="#00e5a0" stroke-width="1"/>
+            <circle cx="80" cy="150" r="5" fill="#00e5a0"/>
+            <circle class="n-node" cx="150" cy="160" r="11" fill="rgba(0,229,160,0.15)" stroke="#00e5a0" stroke-width="1"/>
+            <circle cx="150" cy="160" r="5" fill="#00e5a0"/>
+            <circle cx="60" cy="100" r="4" fill="rgba(0,229,160,0.5)" stroke="#00e5a0" stroke-width="1"/>
+            <circle cx="50" cy="200" r="4" fill="rgba(0,229,160,0.4)" stroke="#00e5a0" stroke-width="1"/>
+            <!-- Module B nodes -->
+            <circle class="n-node" cx="250" cy="90" r="11" fill="rgba(123,111,240,0.2)" stroke="#7b6ff0" stroke-width="1.5"/>
+            <circle cx="250" cy="90" r="5" fill="#7b6ff0"/>
+            <circle class="n-node" cx="300" cy="150" r="12" fill="rgba(123,111,240,0.2)" stroke="#7b6ff0" stroke-width="1.5"/>
+            <circle cx="300" cy="150" r="6" fill="#7b6ff0"/>
+            <circle class="n-node" cx="230" cy="170" r="10" fill="rgba(123,111,240,0.15)" stroke="#7b6ff0" stroke-width="1"/>
+            <circle cx="230" cy="170" r="5" fill="#7b6ff0"/>
+            <circle cx="330" cy="100" r="4" fill="rgba(123,111,240,0.4)" stroke="#7b6ff0" stroke-width="1"/>
+            <circle cx="270" cy="220" r="4" fill="rgba(123,111,240,0.4)" stroke="#7b6ff0" stroke-width="1"/>
+            <!-- Module C nodes -->
+            <circle class="n-node" cx="180" cy="230" r="10" fill="rgba(240,160,64,0.2)" stroke="#f0a040" stroke-width="1.5"/>
+            <circle cx="180" cy="230" r="5" fill="#f0a040"/>
+            <circle class="n-node" cx="140" cy="265" r="8" fill="rgba(240,160,64,0.15)" stroke="#f0a040" stroke-width="1"/>
+            <circle cx="140" cy="265" r="4" fill="#f0a040"/>
+            <circle class="n-node" cx="220" cy="260" r="8" fill="rgba(240,160,64,0.15)" stroke="#f0a040" stroke-width="1"/>
+            <circle cx="220" cy="260" r="4" fill="#f0a040"/>
+            <!-- Keyword labels (actual extracted terms) -->
+            <text class="n-label" x="128" y="76">"budget"</text>
+            <text class="n-label" x="48" y="148">"liability"</text>
+            <text class="n-label" x="155" y="157">"exposure"</text>
+            <text class="n-label" x="253" y="86">"milestone"</text>
+            <text class="n-label" x="303" y="148">"overdue"</text>
+            <text class="n-label" x="196" y="169">"deliverable"</text>
+            <text class="n-label" x="168" y="225">"compliance"</text>
+            <text class="n-label" x="98" y="272">"escalate"</text>
+            <text class="n-label" x="222" y="258">"urgent"</text>
+            <!-- Module labels -->
+            <text x="72" y="55" fill="#00e5a0" font-size="9" font-family="'Calibri', sans-serif" letter-spacing="1" opacity="0.8">MODULE A · Financial/Legal</text>
+            <text x="228" y="60" fill="#7b6ff0" font-size="9" font-family="'Calibri', sans-serif" letter-spacing="1" opacity="0.8">MODULE B · Project/Ops</text>
+            <text x="108" y="292" fill="#f0a040" font-size="9" font-family="'Calibri', sans-serif" letter-spacing="1" opacity="0.8">MODULE C · Compliance/Urgency</text>
+          </svg>
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap: 0.75rem; margin-top: 1rem;">
+            <div style="background:rgba(0,229,160,0.06);border:1px solid rgba(0,229,160,0.15);border-radius:4px;padding:0.75rem;">
+              <div style="font-size:0.6rem;color:var(--accent);letter-spacing:0.08em;margin-bottom:0.3rem">MODULE A</div>
+              <div style="font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:800">31%</div>
+              <div style="font-size:0.6rem;color:var(--muted)">of corpus</div>
+            </div>
+            <div style="background:rgba(123,111,240,0.06);border:1px solid rgba(123,111,240,0.15);border-radius:4px;padding:0.75rem;">
+              <div style="font-size:0.6rem;color:var(--accent2);letter-spacing:0.08em;margin-bottom:0.3rem">MODULE B</div>
+              <div style="font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:800">44%</div>
+              <div style="font-size:0.6rem;color:var(--muted)">of corpus</div>
+            </div>
+            <div style="background:rgba(240,160,64,0.06);border:1px solid rgba(240,160,64,0.15);border-radius:4px;padding:0.75rem;">
+              <div style="font-size:0.6rem;color:var(--accent3);letter-spacing:0.08em;margin-bottom:0.3rem">MODULE C</div>
+              <div style="font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:800">18%</div>
+              <div style="font-size:0.6rem;color:var(--muted)">of corpus</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── INTEGRATIONS ── -->
+<section id="integrations" style="padding-top:0">
+  <div class="container">
+    <div class="section-tag">Data Sources</div>
+    <div class="section-title reveal">Connect anything.<br><em>Analyze everything.</em></div>
+    <div class="section-sub reveal">Stratum ingests from wherever your text corpus lives. For emails and messaging, full body text is extracted — not just headers or subjects. Native connectors are read-only and privacy-respecting; your data is analyzed in-place and never stored.</div>
+    <div class="integrations-grid reveal">
+      <div class="integration-card">
+        <div class="i-icon">📧</div>
+        <div class="i-name">Email Systems</div>
+        <div class="i-desc">JMail.world, Gmail, Outlook, Exchange, IMAP. Full body text extracted — not just subjects or metadata.</div>
+        <div class="i-badge">Native</div>
+      </div>
+      <div class="integration-card">
+        <div class="i-icon">🗄️</div>
+        <div class="i-name">Databases</div>
+        <div class="i-desc">PostgreSQL, MySQL, BigQuery, Snowflake, Redshift. Query any table as a record set.</div>
+        <div class="i-badge">Native</div>
+      </div>
+      <div class="integration-card">
+        <div class="i-icon">📁</div>
+        <div class="i-name">Files & Docs</div>
+        <div class="i-desc">CSV, Excel, PDF, JSON, JSONL. Upload directly or connect to S3, Drive, or Dropbox.</div>
+        <div class="i-badge v2">Beta</div>
+      </div>
+      <div class="integration-card">
+        <div class="i-icon">🔗</div>
+        <div class="i-name">REST APIs</div>
+        <div class="i-desc">Connect any paginated REST API. Configure auth, schema, and polling interval.</div>
+        <div class="i-badge v2">Beta</div>
+      </div>
+      <div class="integration-card">
+        <div class="i-icon">💬</div>
+        <div class="i-name">Messaging</div>
+        <div class="i-desc">Slack, Teams, Discord. Channel-level or user-level annotation and network analysis.</div>
+        <div class="i-badge v3">Roadmap</div>
+      </div>
+      <div class="integration-card">
+        <div class="i-icon">📋</div>
+        <div class="i-name">Project Tools</div>
+        <div class="i-desc">Jira, Asana, Linear, GitHub Issues. Analyze task and ticket corpora at scale.</div>
+        <div class="i-badge v3">Roadmap</div>
+      </div>
+      <div class="integration-card">
+        <div class="i-icon">🐦</div>
+        <div class="i-name">Social Data</div>
+        <div class="i-desc">Bluesky, Reddit, research feeds via API. Ideal for academic and policy analysis.</div>
+        <div class="i-badge v3">Roadmap</div>
+      </div>
+      <div class="integration-card">
+        <div class="i-icon">⚙️</div>
+        <div class="i-name">Custom Connector</div>
+        <div class="i-desc">SDK for building connectors in Python or TypeScript. Full access to the annotation and analysis pipeline.</div>
+        <div class="i-badge v2">SDK</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CROSS-MODAL TEMPORAL FUSION ── -->
+<section id="fusion">
+  <div class="container">
+    <div class="section-tag">Cross-Modal Temporal Fusion</div>
+    <div class="section-title reveal">Time is the<br><em>join key</em></div>
+    <div class="section-sub reveal">Keyword modules discovered in your email corpus carry timestamps. Any other dataset that also has timestamps — flight logs, bank transfers, purchases, access records — can be probed for co-occurrences with those modules. Text and numbers, fused by time.</div>
+
+    <!-- Concept diagram: the join -->
+    <div class="join-diagram reveal" style="margin-bottom: 3rem;">
+      <div class="join-side">
+        <div class="join-side-header left">📧 Email Corpus · Module Activity</div>
+        <div class="join-rows">
+          <div class="join-row">
+            <span class="join-ts">Mar 3 · 09:14</span>
+            <span class="join-val">"budget exposure liability…"</span>
+            <span class="join-mod mod-a-tag">Mod A</span>
+          </div>
+          <div class="join-row">
+            <span class="join-ts">Mar 3 · 11:02</span>
+            <span class="join-val">"milestone deliverable overdue…"</span>
+            <span class="join-mod mod-b-tag">Mod B</span>
+          </div>
+          <div class="join-row">
+            <span class="join-ts">Mar 4 · 08:33</span>
+            <span class="join-val">"compliance urgent escalate…"</span>
+            <span class="join-mod mod-c-tag">Mod C</span>
+          </div>
+          <div class="join-row">
+            <span class="join-ts">Mar 4 · 15:47</span>
+            <span class="join-val">"budget exposure audit…"</span>
+            <span class="join-mod mod-a-tag">Mod A</span>
+          </div>
+          <div class="join-row">
+            <span class="join-ts">Mar 5 · 10:20</span>
+            <span class="join-val">"deliverable milestone blocked…"</span>
+            <span class="join-mod mod-b-tag">Mod B</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="join-center">
+        <div class="join-arrow">←</div>
+        <div class="join-key-badge">
+          JOIN KEY
+          <strong>timestamp</strong>
+          window ± δt
+        </div>
+        <div class="join-arrow">→</div>
+      </div>
+
+      <div class="join-side">
+        <div class="join-side-header right">💳 Structured Dataset · Bank Transfers</div>
+        <div class="join-rows">
+          <div class="join-row">
+            <span class="join-ts">Mar 3 · 09:41</span>
+            <span class="join-val">Transfer · $84,200</span>
+            <span class="join-mod mod-a-tag">↔ Mod A</span>
+          </div>
+          <div class="join-row">
+            <span class="join-ts">Mar 3 · 12:15</span>
+            <span class="join-val">Vendor pay · $12,500</span>
+            <span class="join-mod mod-b-tag">↔ Mod B</span>
+          </div>
+          <div class="join-row">
+            <span class="join-ts">Mar 4 · 09:02</span>
+            <span class="join-val">Wire · $310,000</span>
+            <span class="join-mod mod-c-tag">↔ Mod C</span>
+          </div>
+          <div class="join-row">
+            <span class="join-ts">Mar 4 · 16:30</span>
+            <span class="join-val">Transfer · $97,600</span>
+            <span class="join-mod mod-a-tag">↔ Mod A</span>
+          </div>
+          <div class="join-row">
+            <span class="join-ts">Mar 5 · 11:05</span>
+            <span class="join-val">Contractor · $28,000</span>
+            <span class="join-mod mod-b-tag">↔ Mod B</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Timeline visual -->
+    <div class="fusion-intro reveal">
+      <div>
+        <div class="section-tag" style="margin-bottom:0.75rem">How it works</div>
+        <p style="font-size:0.85rem;color:var(--muted);line-height:1.9;margin-bottom:1.5rem">
+          Each keyword module produces a <strong style="color:var(--text)">module activity time series</strong> — a curve of how often emails carrying those terms appear across time. That signal is compared against event frequency curves from your structured dataset over the same window.
+        </p>
+        <p style="font-size:0.85rem;color:var(--muted);line-height:1.9;margin-bottom:1.5rem">
+          The window <strong style="color:var(--text)">δt</strong> is configurable: search for co-occurrences within minutes, hours, days, or weeks. Lagged correlations find whether text activity <em>leads</em> or <em>follows</em> structured events — not just whether they coincide.
+        </p>
+        <p style="font-size:0.85rem;color:var(--muted);line-height:1.9">
+          When the structured dataset contains <strong style="color:var(--text)">named entities</strong> — merchant names, airline codes, account IDs — that also appear as keywords in the email corpus, those records are promoted to direct semantic bridges, strengthening the temporal link.
+        </p>
+      </div>
+
+      <div class="fusion-concept">
+        <div class="fusion-concept-bar">
+          <span>Module activity vs. transfer volume · March 1–10</span>
+          <span style="color:var(--accent)">r = 0.74, lag = +4h</span>
+        </div>
+        <div class="fusion-concept-body">
+          <div class="timeline-wrap">
+            <div class="tl-axis">
+              <span>Mar 1</span><span>Mar 3</span><span>Mar 5</span><span>Mar 7</span><span>Mar 9</span>
+            </div>
+
+            <!-- Module A activity -->
+            <div class="tl-row">
+              <div class="tl-label" style="color:var(--accent)">Mod A emails</div>
+              <div class="tl-bar-track">
+                <div class="tl-spike" style="left:5%;width:8%;background:var(--accent);opacity:0.3;"></div>
+                <div class="tl-spike" style="left:22%;width:12%;background:var(--accent);opacity:0.7;"></div>
+                <div class="tl-spike" style="left:40%;width:20%;background:var(--accent);opacity:1;"></div>
+                <div class="tl-spike" style="left:65%;width:10%;background:var(--accent);opacity:0.5;"></div>
+                <div class="tl-spike" style="left:80%;width:6%;background:var(--accent);opacity:0.3;"></div>
+                <!-- window highlight -->
+                <div class="tl-window" style="left:38%;width:25%;"></div>
+              </div>
+            </div>
+
+            <!-- Transfer volume — lagged +4h, shows after spike -->
+            <div class="tl-row">
+              <div class="tl-label" style="color:var(--accent2)">Transfer vol.</div>
+              <div class="tl-bar-track">
+                <div class="tl-spike" style="left:8%;width:7%;background:var(--accent2);opacity:0.25;"></div>
+                <div class="tl-spike" style="left:26%;width:10%;background:var(--accent2);opacity:0.55;"></div>
+                <div class="tl-spike" style="left:46%;width:18%;background:var(--accent2);opacity:0.95;"></div>
+                <div class="tl-spike" style="left:69%;width:9%;background:var(--accent2);opacity:0.4;"></div>
+                <div class="tl-spike" style="left:84%;width:5%;background:var(--accent2);opacity:0.25;"></div>
+                <div class="tl-window" style="left:44%;width:23%;border-color:rgba(123,111,240,0.4);"></div>
+              </div>
+            </div>
+
+            <div class="tl-divider"></div>
+
+            <!-- Module B activity -->
+            <div class="tl-row">
+              <div class="tl-label" style="color:var(--accent2)">Mod B emails</div>
+              <div class="tl-bar-track">
+                <div class="tl-spike" style="left:10%;width:15%;background:var(--accent2);opacity:0.6;"></div>
+                <div class="tl-spike" style="left:35%;width:8%;background:var(--accent2);opacity:0.4;"></div>
+                <div class="tl-spike" style="left:55%;width:18%;background:var(--accent2);opacity:0.85;"></div>
+                <div class="tl-spike" style="left:80%;width:12%;background:var(--accent2);opacity:0.5;"></div>
+              </div>
+            </div>
+
+            <!-- Flight bookings — different pattern, weaker match -->
+            <div class="tl-row">
+              <div class="tl-label" style="color:var(--muted)">Flight bookings</div>
+              <div class="tl-bar-track">
+                <div class="tl-spike" style="left:12%;width:14%;background:var(--accent3);opacity:0.5;"></div>
+                <div class="tl-spike" style="left:38%;width:6%;background:var(--accent3);opacity:0.3;"></div>
+                <div class="tl-spike" style="left:57%;width:16%;background:var(--accent3);opacity:0.75;"></div>
+                <div class="tl-spike" style="left:78%;width:11%;background:var(--accent3);opacity:0.45;"></div>
+              </div>
+            </div>
+
+          </div>
+          <div style="margin-top:1rem;display:flex;gap:1.5rem;font-size:0.6rem;color:var(--muted);flex-wrap:wrap;">
+            <span style="display:flex;align-items:center;gap:0.4rem"><span style="display:inline-block;width:20px;height:2px;background:var(--accent)"></span>Email module activity</span>
+            <span style="display:flex;align-items:center;gap:0.4rem"><span style="display:inline-block;width:20px;height:2px;background:var(--accent2)"></span>Structured events</span>
+            <span style="display:flex;align-items:center;gap:0.4rem"><span style="display:inline-block;width:8px;height:8px;background:rgba(255,255,255,0.06);border:1px dashed rgba(255,255,255,0.2)"></span>Co-occurrence window</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 6 fusion modes -->
+    <div class="section-tag" style="margin-bottom:1rem">Analysis Modes</div>
+    <div class="section-title reveal" style="margin-bottom:0.75rem">Five ways to<br><em>fuse the datasets</em></div>
+    <div class="section-sub reveal">Each mode asks a different question about the relationship between keyword module activity and structured event patterns.</div>
+
+    <div class="fusion-modes reveal">
+      <div class="fusion-mode-card fm-overlay">
+        <span class="fm-icon">📊</span>
+        <div class="fm-name">Temporal Overlay</div>
+        <div class="fm-desc">Plot module activity time series alongside event frequency from the structured dataset on the same time axis. Visual alignment reveals whether spikes co-occur without making causal claims.</div>
+        <div class="fm-example">Do Module A emails and large bank transfers spike on the same days?</div>
+      </div>
+      <div class="fusion-mode-card fm-xcorr">
+        <span class="fm-icon">↔</span>
+        <div class="fm-name">Lagged Cross-Correlation</div>
+        <div class="fm-desc">Compute cross-correlation between module activity and event frequency at multiple time lags (−7d to +7d). Identifies whether text activity predicts, follows, or merely coincides with structured events — and by how many hours or days.</div>
+        <div class="fm-example v2">Module A emails precede anomalous wire transfers by ~4 hours (r = 0.74).</div>
+      </div>
+      <div class="fusion-mode-card fm-window">
+        <span class="fm-icon">🪟</span>
+        <div class="fm-name">Event-Driven Windowing</div>
+        <div class="fm-desc">For each email tagged to a module, open a configurable time window (e.g. ±48h) and extract all structured records within it. Build a secondary co-occurrence matrix: which event types cluster inside Module A windows vs. Module B windows?</div>
+        <div class="fm-example v3">Module C emails are followed within 6h by international flight bookings in 38% of cases.</div>
+      </div>
+      <div class="fusion-mode-card fm-entity">
+        <span class="fm-icon">🔗</span>
+        <div class="fm-name">Shared Entity Linkage</div>
+        <div class="fm-desc">When the structured dataset contains named entities — merchant names, airline codes, account numbers — that also appear as keywords in the corpus, those records become direct semantic bridges. Temporal and lexical signals reinforce each other.</div>
+        <div class="fm-example v4">"Acme Corp" appears in Module A emails and as a transfer recipient on the same dates.</div>
+      </div>
+      <div class="fusion-mode-card fm-sem">
+        <span class="fm-icon">⟶</span>
+        <div class="fm-name">Joint SEM</div>
+        <div class="fm-desc">Build a Structural Equation Model where both keyword module loadings and structured event patterns are indicators of the same latent construct. Tests whether the two modalities jointly reflect an underlying process — and quantifies how much each contributes.</div>
+        <div class="fm-example v5">A latent "financial stress" factor loads on Module A keywords AND on wire transfer frequency and amounts.</div>
+      </div>
+      <div class="fusion-mode-card fm-alert">
+        <span class="fm-icon">🚨</span>
+        <div class="fm-name">Anomaly Alerting</div>
+        <div class="fm-desc">Once a baseline cross-modal co-occurrence pattern is established, flag new records when their temporal relationship to keyword module activity deviates significantly — unusual transactions arriving outside typical windows, or module spikes with no corresponding structured event.</div>
+        <div class="fm-example v6">Module A spike detected with no corresponding transfer event in the expected ±6h window.</div>
+      </div>
+    </div>
+
+    <!-- Supported structured dataset types -->
+    <div class="section-tag" style="margin-bottom:1rem">Supported Structured Datasets</div>
+    <div class="integrations-grid reveal" style="margin-bottom:0">
+      <div class="integration-card">
+        <div class="i-icon">💳</div>
+        <div class="i-name">Bank Transfers</div>
+        <div class="i-desc">Amounts, counterparties, account codes, timestamps. Co-occurrence with financial/legal keyword modules.</div>
+        <div class="i-badge">CSV / API</div>
+      </div>
+      <div class="integration-card">
+        <div class="i-icon">✈️</div>
+        <div class="i-name">Flight Logs</div>
+        <div class="i-desc">Departure/arrival times, routes, tail numbers, passenger IDs. Temporal correlation with email module activity.</div>
+        <div class="i-badge">CSV / API</div>
+      </div>
+      <div class="integration-card">
+        <div class="i-icon">🛒</div>
+        <div class="i-name">Purchase Records</div>
+        <div class="i-desc">Merchant, category, amount, timestamp. Merchant names often bridge directly to email keyword modules as shared entities.</div>
+        <div class="i-badge">CSV / API</div>
+      </div>
+      <div class="integration-card">
+        <div class="i-icon">🚪</div>
+        <div class="i-name">Access Logs</div>
+        <div class="i-desc">Building entry/exit, system logins, badge scans. Physical presence data fused with communication patterns.</div>
+        <div class="i-badge v2">Beta</div>
+      </div>
+      <div class="integration-card">
+        <div class="i-icon">📞</div>
+        <div class="i-name">Call Records (CDRs)</div>
+        <div class="i-desc">Caller, recipient, duration, timestamp. Communication network overlaid with email keyword co-occurrence modules.</div>
+        <div class="i-badge v2">Beta</div>
+      </div>
+      <div class="integration-card">
+        <div class="i-icon">📦</div>
+        <div class="i-name">Shipping & Logistics</div>
+        <div class="i-desc">Origin, destination, weight, carrier, timestamp. Supply chain events fused with operational keyword module activity.</div>
+        <div class="i-badge v2">Beta</div>
+      </div>
+      <div class="integration-card">
+        <div class="i-icon">🏥</div>
+        <div class="i-name">Clinical Records</div>
+        <div class="i-desc">Diagnoses, procedures, prescriptions, dates. Fuse clinical notes keyword modules with coded encounter data.</div>
+        <div class="i-badge v3">Roadmap</div>
+      </div>
+      <div class="integration-card">
+        <div class="i-icon">⚙️</div>
+        <div class="i-name">Any Timestamped Table</div>
+        <div class="i-desc">If it has a datetime column and at least one numeric or categorical field, Stratum can fuse it with your text corpus modules.</div>
+        <div class="i-badge v2">SDK</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CTA ── -->
+<div class="cta-section">
+  <div style="position:relative;z-index:1;">
+    <div class="section-tag" style="justify-content:center;display:flex">Early Access</div>
+    <h2>See what's hiding<br>in your data</h2>
+    <p>Stratum is in private beta. We're onboarding teams with complex text corpora and structured datasets — and a genuine need to find what connects them.</p>
+    <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;">
+      <a href="#" class="btn-primary">Request Access</a>
+      <a href="#" class="btn-ghost">Read the Docs</a>
+    </div>
+  </div>
+</div>
+
+<!-- ── FOOTER ── -->
+<div class="container">
+  <footer>
+    <span>© 2026 Stratum. Deep Data Intelligence.</span>
+    <span style="letter-spacing:0.12em">BUILT FOR RESEARCHERS & ANALYSTS</span>
+    <span>Privacy · Docs · GitHub</span>
+  </footer>
+</div>
+
+<script>
+  // Reveal on scroll
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+  }, { threshold: 0.1 });
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+  // Stat animation
+  document.querySelectorAll('.stat').forEach((el, i) => {
+    el.style.animationDelay = `${i * 0.15}s`;
+    el.style.opacity = '0';
+    setTimeout(() => { el.style.opacity = '1'; el.style.transform = 'none'; }, 500 + i * 150);
+  });
+
+  // Walkthrough step toggle
+  function setStep(el, idx) {
+    document.querySelectorAll('.w-step').forEach(s => s.classList.remove('active'));
+    el.classList.add('active');
+  }
+
+  // Subtle node hover on network graph
+  document.querySelectorAll('.n-node').forEach(node => {
+    node.addEventListener('mouseenter', function() {
+      this.style.transform = 'scale(1.3)';
+      this.style.transformOrigin = 'center';
+    });
+    node.addEventListener('mouseleave', function() {
+      this.style.transform = '';
+    });
+  });
+</script>
+</body>
+</html>
